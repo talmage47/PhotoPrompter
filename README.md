@@ -1,2 +1,2 @@
 # PhotoPrompter
-An app designed to inspire users to take photos of mundane things throughout their day
+An ios app designed to inspire users to take photos of mundane things throughout their day
