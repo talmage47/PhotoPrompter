@@ -7,6 +7,7 @@ class CameraViewController: UIViewController {
     private var photoOutput = AVCapturePhotoOutput()
     
     private var captureButton: UIButton!
+    private var previewContainer: UIView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -16,6 +17,16 @@ class CameraViewController: UIViewController {
     
     private func setupCamera() {
         captureSession.sessionPreset = .photo
+        
+        previewContainer = UIView(frame: view.bounds)
+        previewContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(previewContainer)
+        NSLayoutConstraint.activate([
+            previewContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            previewContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            previewContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            previewContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
         
         guard let backCamera = AVCaptureDevice.default(for: .video) else {
             print("Unable to access back camera!")
@@ -33,14 +44,22 @@ class CameraViewController: UIViewController {
             }
             
             previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-            previewLayer.videoGravity = .resizeAspectFill
-            previewLayer.frame = view.layer.bounds
-            view.layer.addSublayer(previewLayer)
+            previewLayer.videoGravity = .resizeAspect
+            previewLayer.frame = previewContainer.bounds
+            previewContainer.layer.addSublayer(previewLayer)
             
-            captureSession.startRunning()
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.captureSession.startRunning()
+            }
         } catch {
             print("Error Unable to initialize back camera:  \(error.localizedDescription)")
         }
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewContainer.frame = view.bounds
+        previewLayer.frame = previewContainer.bounds
     }
     
     private func addCaptureButton() {
@@ -117,8 +136,8 @@ import ObjectiveC.runtime
 
 extension CameraViewController {
     private struct AssociatedKeys {
-        static var position = "position"
-        static var onImageCaptured = "onImageCaptured"
+        static var position: UInt8 = 0
+        static var onImageCaptured: UInt8 = 0
     }
 
     var position: CameraPosition {
@@ -146,6 +165,9 @@ extension CameraViewController {
                 let input = try AVCaptureDeviceInput(device: device)
                 if captureSession.canAddInput(input) {
                     captureSession.addInput(input)
+                }
+                DispatchQueue.global(qos: .userInitiated).async {
+                    self.captureSession.startRunning()
                 }
             } catch {
                 print("Error setting camera device: \(error)")

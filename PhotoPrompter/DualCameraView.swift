@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 struct DualCameraView: View {
     enum Step {
@@ -108,10 +109,12 @@ struct DualCameraView: View {
         "Find and photograph a colorful pen or pencil."
     ]
     
+    @Environment(\.managedObjectContext) private var moc
     @State private var step: Step = .back
     @State private var backPhoto: UIImage?
     @State private var frontPhoto: UIImage?
     @State private var currentPrompt: String?
+    
     
     var body: some View {
         VStack {
@@ -124,10 +127,12 @@ struct DualCameraView: View {
                     
                     CameraView(position: .back) { image in
                         backPhoto = image
+                        step = .front
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding()
                     
+                    /*
                     if let backPhoto = backPhoto {
                         Image(uiImage: backPhoto)
                             .resizable()
@@ -135,30 +140,7 @@ struct DualCameraView: View {
                             .frame(height: 200)
                             .padding()
                     }
-                    
-                    HStack {
-                        Button("Retake") {
-                            backPhoto = nil
-                            currentPrompt = DualCameraView.prompts.randomElement()
-                        }
-                        .padding()
-                        
-                        Button(backPhoto == nil ? "Capture" : "Next") {
-                            if backPhoto == nil {
-                                // Trigger capture handled inside CameraView
-                                // Here just proceed when photo is set via binding.
-                            } else {
-                                step = .front
-                            }
-                        }
-                        .disabled(backPhoto == nil)
-                        .padding()
-                    }
-                }
-                .onAppear {
-                    if currentPrompt == nil {
-                        currentPrompt = DualCameraView.prompts.randomElement()
-                    }
+                    */
                 }
                 
             case .front:
@@ -169,10 +151,12 @@ struct DualCameraView: View {
                     
                     CameraView(position: .front) { image in
                         frontPhoto = image
+                        step = .done
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding()
                     
+                    /*
                     if let frontPhoto = frontPhoto {
                         Image(uiImage: frontPhoto)
                             .resizable()
@@ -180,23 +164,7 @@ struct DualCameraView: View {
                             .frame(height: 200)
                             .padding()
                     }
-                    
-                    HStack {
-                        Button("Retake") {
-                            frontPhoto = nil
-                        }
-                        .padding()
-                        
-                        Button(frontPhoto == nil ? "Capture" : "Finish") {
-                            if frontPhoto == nil {
-                                // Capture handled inside CameraView
-                            } else {
-                                step = .done
-                            }
-                        }
-                        .disabled(frontPhoto == nil)
-                        .padding()
-                    }
+                    */
                 }
                 
             case .done:
@@ -230,17 +198,63 @@ struct DualCameraView: View {
                             .frame(height: 200)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    
-                    Button("Restart") {
-                        backPhoto = nil
-                        frontPhoto = nil
-                        currentPrompt = nil
-                        step = .back
-                    }
-                    .padding()
                 }
                 .padding()
+            }
+            
+            HStack {
+                Button("Restart") {
+                    backPhoto = nil
+                    frontPhoto = nil
+                    currentPrompt = DualCameraView.prompts.randomElement()
+                    step = .back
+                }
+                .padding()
+                .disabled(backPhoto == nil && frontPhoto == nil)
+                
+                Spacer()
+                
+                Button("Submit") {
+                    if let backPhoto = backPhoto, let frontPhoto = frontPhoto {
+                        let pair = PhotoPair(context: moc)
+                        pair.id = UUID()
+                        pair.date = Date()
+                        pair.backImage = backPhoto.jpegData(compressionQuality: 0.8) ?? Data()
+                        pair.frontImage = frontPhoto.jpegData(compressionQuality: 0.8) ?? Data()
+                        try? moc.save()
+                    }
+                    // Optionally show a confirmation or reset, but do not navigate to .done again
+                }
+                .padding()
+                .disabled(backPhoto == nil || frontPhoto == nil)
+            }
+            .padding([.horizontal, .bottom])
+        }
+        .onAppear {
+            if currentPrompt == nil {
+                currentPrompt = DualCameraView.prompts.randomElement()
             }
         }
     }
 }
+
+#if DEBUG
+import CoreData
+
+struct DualCameraView_Previews: PreviewProvider {
+    static var previews: some View {
+        let container = NSPersistentContainer(name: "PhotoPrompterModel")
+        let description = NSPersistentStoreDescription()
+        description.type = NSInMemoryStoreType
+        container.persistentStoreDescriptions = [description]
+        container.loadPersistentStores { _, error in
+            if let error = error {
+                fatalError("Failed to load stores: \(error)")
+            }
+        }
+        let context = container.viewContext
+        return DualCameraView()
+            .environment(\.managedObjectContext, context)
+    }
+}
+#endif
