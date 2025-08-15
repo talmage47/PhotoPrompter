@@ -5,7 +5,8 @@ struct PhotoPairCell: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            if let img1 = UIImage(data: pair.backImage), let img2 = UIImage(data: pair.frontImage) {
+            if let backData = pair.backImage, let frontData = pair.frontImage,
+               let img1 = UIImage(data: backData), let img2 = UIImage(data: frontData) {
                 Image(uiImage: img1)
                     .resizable()
                     .scaledToFit()

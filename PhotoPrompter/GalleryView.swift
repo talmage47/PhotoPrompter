@@ -4,7 +4,7 @@ import CoreData
 struct GalleryView: View {
     @FetchRequest(
         entity: PhotoPair.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \PhotoPair.date, ascending: false)]
+        sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)]
     ) var photoPairs: FetchedResults<PhotoPair>
 
     let columns = [GridItem(.flexible()), GridItem(.flexible())]
@@ -13,10 +13,12 @@ struct GalleryView: View {
         NavigationView {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(photoPairs, id: \.id) { pair in
+                    ForEach(photoPairs) { pair in
                         VStack {
-                            if let backImg = UIImage(data: pair.backImage),
-                               let frontImg = UIImage(data: pair.frontImage) {
+                            if let backData = pair.backImage,
+                               let frontData = pair.frontImage,
+                               let backImg = UIImage(data: backData),
+                               let frontImg = UIImage(data: frontData) {
                                 HStack(spacing: 8) {
                                     Image(uiImage: backImg)
                                         .resizable()
@@ -32,9 +34,15 @@ struct GalleryView: View {
                                     .foregroundColor(.secondary)
                                     .font(.caption)
                             }
-                            Text(pair.date, style: .date)
-                                .font(.caption2)
-                                .foregroundColor(.gray)
+                            if let date = pair.date {
+                                Text(date, style: .date)
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                            } else {
+                                Text("No date")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                            }
                         }
                         .padding(8)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(.secondarySystemBackground)))
