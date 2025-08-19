@@ -115,64 +115,56 @@ struct DualCameraView: View {
     @State private var frontPhoto: UIImage?
     @State private var currentPrompt: String?
     
-    @State private var triggerCaptureBack = false
-    @State private var triggerCaptureFront = false
     
     var body: some View {
         VStack {
             switch step {
             case .back:
-                VStack(spacing: 12) {
+                VStack {
                     Text(currentPrompt ?? "...")
                         .font(.headline)
-                        .foregroundColor(Color("MainText"))
+                        .padding()
                     
-                    CameraView(position: .back, triggerCapture: $triggerCaptureBack) { image in
+                    CameraView(position: .back) { image in
                         backPhoto = image
                         step = .front
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding()
                     
-                    Button {
-                        triggerCaptureBack = true
-                    } label: {
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 70, height: 70)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.gray.opacity(0.7), lineWidth: 4)
-                            )
+                    /*
+                    if let backPhoto = backPhoto {
+                        Image(uiImage: backPhoto)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 200)
+                            .padding()
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.top, 6)
+                    */
                 }
                 
             case .front:
-                VStack(spacing: 12) {
+                VStack {
                     Text("Take a selfie")
                         .font(.title)
-                        .foregroundColor(Color("MainText"))
+                        .padding()
                     
-                    CameraView(position: .front, triggerCapture: $triggerCaptureFront) { image in
+                    CameraView(position: .front) { image in
                         frontPhoto = image
                         step = .done
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding()
                     
-                    Button {
-                        triggerCaptureFront = true
-                    } label: {
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 70, height: 70)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.gray.opacity(0.7), lineWidth: 4)
-                            )
+                    /*
+                    if let frontPhoto = frontPhoto {
+                        Image(uiImage: frontPhoto)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 200)
+                            .padding()
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.top, 6)
+                    */
                 }
                 
             case .done:
@@ -180,20 +172,14 @@ struct DualCameraView: View {
                     Text("Photos Captured")
                         .font(.largeTitle)
                         .padding()
-                        .foregroundColor(Color("MainText"))
                     
                     if let backPhoto = backPhoto {
                         VStack(alignment: .leading) {
                             Text("Back Photo (Prompt):")
                                 .font(.headline)
-                                .foregroundColor(Color("MainText"))
                             Text(currentPrompt ?? "")
                                 .italic()
-                                .foregroundColor(Color("MainText"))
                         }
-                        .padding()
-                        .background(Color("Foreground"))
-                        .cornerRadius(12)
                         Image(uiImage: backPhoto)
                             .resizable()
                             .scaledToFit()
@@ -205,11 +191,7 @@ struct DualCameraView: View {
                         VStack(alignment: .leading) {
                             Text("Selfie:")
                                 .font(.headline)
-                                .foregroundColor(Color("MainText"))
                         }
-                        .padding()
-                        .background(Color("Foreground"))
-                        .cornerRadius(12)
                         Image(uiImage: frontPhoto)
                             .resizable()
                             .scaledToFit()
@@ -232,7 +214,7 @@ struct DualCameraView: View {
                 
                 Spacer()
                 
-                Button("Post") {
+                Button("Submit") {
                     if let backPhoto = backPhoto, let frontPhoto = frontPhoto {
                         let pair = PhotoPair(context: moc)
                         pair.id = UUID()
@@ -241,17 +223,13 @@ struct DualCameraView: View {
                         pair.frontImage = frontPhoto.jpegData(compressionQuality: 0.8) ?? Data()
                         try? moc.save()
                     }
-                    backPhoto = nil
-                    frontPhoto = nil
-                    currentPrompt = DualCameraView.prompts.randomElement()
-                    step = .back
+                    // Optionally show a confirmation or reset, but do not navigate to .done again
                 }
                 .padding()
                 .disabled(backPhoto == nil || frontPhoto == nil)
             }
             .padding([.horizontal, .bottom])
         }
-        .background(Color("Background").ignoresSafeArea())
         .onAppear {
             if currentPrompt == nil {
                 currentPrompt = DualCameraView.prompts.randomElement()

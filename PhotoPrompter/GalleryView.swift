@@ -15,8 +15,8 @@ struct GalleryView: View {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(photoPairs, id: \.id) { pair in
                         VStack {
-                            if let backData = pair.backImage, let frontData = pair.frontImage,
-                               let backImg = UIImage(data: backData), let frontImg = UIImage(data: frontData) {
+                            if let backImg = UIImage(data: pair.backImage),
+                               let frontImg = UIImage(data: pair.frontImage) {
                                 HStack(spacing: 8) {
                                     Image(uiImage: backImg)
                                         .resizable()
@@ -32,7 +32,7 @@ struct GalleryView: View {
                                     .foregroundColor(.secondary)
                                     .font(.caption)
                             }
-                            Text((pair.date ?? Date(timeIntervalSince1970: 946684800)), style: .date)
+                            Text(pair.date, style: .date)
                                 .font(.caption2)
                                 .foregroundColor(.gray)
                         }
