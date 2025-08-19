@@ -6,13 +6,11 @@ class CameraViewController: UIViewController {
     private var previewLayer: AVCaptureVideoPreviewLayer!
     private var photoOutput = AVCapturePhotoOutput()
     
-    private var captureButton: UIButton!
     private var previewContainer: UIView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
-        addCaptureButton()
     }
     
     private func setupCamera() {
@@ -62,41 +60,7 @@ class CameraViewController: UIViewController {
         previewLayer.frame = previewContainer.bounds
     }
     
-    private func addCaptureButton() {
-        captureButton = UIButton(type: .custom)
-        captureButton.backgroundColor = .white
-        captureButton.setTitle("", for: .normal)
-        captureButton.layer.cornerRadius = 32
-        captureButton.clipsToBounds = true
-        
-        captureButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(captureButton)
-        
-        NSLayoutConstraint.activate([
-            captureButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            captureButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            captureButton.widthAnchor.constraint(equalToConstant: 64),
-            captureButton.heightAnchor.constraint(equalToConstant: 64),
-        ])
-        
-        captureButton.addTarget(self, action: #selector(didTapCaptureButton), for: .touchUpInside)
-        captureButton.addTarget(self, action: #selector(captureButtonTouchDown), for: .touchDown)
-        captureButton.addTarget(self, action: #selector(captureButtonTouchUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-    }
-    
-    @objc private func captureButtonTouchDown() {
-        UIView.animate(withDuration: 0.1) {
-            self.captureButton.transform = CGAffineTransform(scaleX: 0.85, y: 0.85)
-        }
-    }
-    
-    @objc private func captureButtonTouchUp() {
-        UIView.animate(withDuration: 0.1) {
-            self.captureButton.transform = CGAffineTransform.identity
-        }
-    }
-    
-    @objc private func didTapCaptureButton() {
+    public func capturePhoto() {
         let settings = AVCapturePhotoSettings()
         photoOutput.capturePhoto(with: settings, delegate: self)
     }
@@ -118,16 +82,43 @@ enum CameraPosition {
 
 struct CameraView: UIViewControllerRepresentable {
     let position: CameraPosition
+    @Binding var triggerCapture: Bool
     let onImageCaptured: (UIImage) -> Void
 
     func makeUIViewController(context: Context) -> CameraViewController {
         let controller = CameraViewController()
         controller.position = position
         controller.onImageCaptured = onImageCaptured
+        context.coordinator.cameraViewController = controller
         return controller
     }
 
-    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {
+        if triggerCapture {
+            context.coordinator.capture()
+            DispatchQueue.main.async {
+                triggerCapture = false
+            }
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+    
+    class Coordinator {
+        let parent: CameraView
+        
+        weak var cameraViewController: CameraViewController?
+        
+        init(parent: CameraView) {
+            self.parent = parent
+        }
+        
+        func capture() {
+            cameraViewController?.capturePhoto()
+        }
+    }
 }
 
 // Extend CameraViewController to support front/back and callback
