@@ -16,15 +16,39 @@ struct PhotoPairCell: View {
             return UIImage(systemName: "photo")!
         }
     }
+    
+    var dateText: Text {
+        if let date = pair.date {
+            return Text(date, style: .date)
+        } else {
+            return Text("No Date")
+        }
+    }
 
     var body: some View {
-        HStack(spacing: 2) {
-            Image(uiImage: frontImage)
-                .resizable()
-                .scaledToFit()
-            Image(uiImage: backImage)
-                .resizable()
-                .scaledToFit()
+        VStack {
+            HStack(spacing: 2) {
+                Image(uiImage: frontImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Image(uiImage: backImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            dateText
+                .font(.caption2)
+                .foregroundColor(Color("MainText"))
+                .padding(.top, 2)
         }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color("Foreground"))
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

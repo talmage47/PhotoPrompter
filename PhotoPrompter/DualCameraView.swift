@@ -117,122 +117,129 @@ struct DualCameraView: View {
     
     
     var body: some View {
-        VStack {
-            switch step {
-            case .back:
-                VStack {
-                    Text(currentPrompt ?? "...")
-                        .font(.headline)
-                        .padding()
-                    
-                    CameraView(position: .back) { image in
-                        backPhoto = image
-                        step = .front
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding()
-                    
-                    /*
-                    if let backPhoto = backPhoto {
-                        Image(uiImage: backPhoto)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
+        ZStack {
+            Color("Background").ignoresSafeArea()
+            VStack {
+                switch step {
+                case .back:
+                    VStack {
+                        Text(currentPrompt ?? "...")
+                            .font(.headline)
+                            .foregroundColor(Color("MainText"))
                             .padding()
+                        
+                        CameraView(position: .back) { image in
+                            backPhoto = image
+                            step = .front
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        
+                        /*
+                         if let backPhoto = backPhoto {
+                         Image(uiImage: backPhoto)
+                         .resizable()
+                         .scaledToFit()
+                         .frame(height: 200)
+                         .padding()
+                         }
+                         */
                     }
-                    */
+                    
+                case .front:
+                    VStack {
+                        Text("Take a selfie")
+                            .font(.title)
+                            .foregroundColor(Color("MainText"))
+                            .padding()
+                        
+                        CameraView(position: .front) { image in
+                            frontPhoto = image
+                            step = .done
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        
+                        /*
+                         if let frontPhoto = frontPhoto {
+                         Image(uiImage: frontPhoto)
+                         .resizable()
+                         .scaledToFit()
+                         .frame(height: 200)
+                         .padding()
+                         }
+                         */
+                    }
+                    
+                case .done:
+                    VStack(spacing: 20) {
+                        Text("Photos Captured")
+                            .font(.largeTitle)
+                            .foregroundColor(Color("MainText"))
+                            .padding()
+                        
+                        if let backPhoto = backPhoto {
+                            VStack(alignment: .leading) {
+                                Text("Back Photo (Prompt):")
+                                    .font(.headline)
+                                    .foregroundColor(Color("MainText"))
+                                Text(currentPrompt ?? "")
+                                    .foregroundColor(Color("MainText"))
+                                    .italic()
+                            }
+                            Image(uiImage: backPhoto)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        
+                        if let frontPhoto = frontPhoto {
+                            VStack(alignment: .leading) {
+                                Text("Selfie:")
+                                    .font(.headline)
+                                    .foregroundColor(Color("MainText"))
+                            }
+                            Image(uiImage: frontPhoto)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding()
                 }
                 
-            case .front:
-                VStack {
-                    Text("Take a selfie")
-                        .font(.title)
-                        .padding()
-                    
-                    CameraView(position: .front) { image in
-                        frontPhoto = image
-                        step = .done
+                HStack {
+                    Button("Restart") {
+                        backPhoto = nil
+                        frontPhoto = nil
+                        currentPrompt = DualCameraView.prompts.randomElement()
+                        step = .back
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding()
+                    .disabled(backPhoto == nil && frontPhoto == nil)
                     
-                    /*
-                    if let frontPhoto = frontPhoto {
-                        Image(uiImage: frontPhoto)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                            .padding()
-                    }
-                    */
-                }
-                
-            case .done:
-                VStack(spacing: 20) {
-                    Text("Photos Captured")
-                        .font(.largeTitle)
-                        .padding()
+                    Spacer()
                     
-                    if let backPhoto = backPhoto {
-                        VStack(alignment: .leading) {
-                            Text("Back Photo (Prompt):")
-                                .font(.headline)
-                            Text(currentPrompt ?? "")
-                                .italic()
+                    Button("Submit") {
+                        if let backPhoto = backPhoto, let frontPhoto = frontPhoto {
+                            let pair = PhotoPair(context: moc)
+                            pair.id = UUID()
+                            pair.date = Date()
+                            pair.backImage = backPhoto.jpegData(compressionQuality: 0.8) ?? Data()
+                            pair.frontImage = frontPhoto.jpegData(compressionQuality: 0.8) ?? Data()
+                            try? moc.save()
                         }
-                        Image(uiImage: backPhoto)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        // Optionally show a confirmation or reset, but do not navigate to .done again
                     }
-                    
-                    if let frontPhoto = frontPhoto {
-                        VStack(alignment: .leading) {
-                            Text("Selfie:")
-                                .font(.headline)
-                        }
-                        Image(uiImage: frontPhoto)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
+                    .padding()
+                    .disabled(backPhoto == nil || frontPhoto == nil)
                 }
-                .padding()
+                .padding([.horizontal, .bottom])
             }
-            
-            HStack {
-                Button("Restart") {
-                    backPhoto = nil
-                    frontPhoto = nil
+            .onAppear {
+                if currentPrompt == nil {
                     currentPrompt = DualCameraView.prompts.randomElement()
-                    step = .back
                 }
-                .padding()
-                .disabled(backPhoto == nil && frontPhoto == nil)
-                
-                Spacer()
-                
-                Button("Submit") {
-                    if let backPhoto = backPhoto, let frontPhoto = frontPhoto {
-                        let pair = PhotoPair(context: moc)
-                        pair.id = UUID()
-                        pair.date = Date()
-                        pair.backImage = backPhoto.jpegData(compressionQuality: 0.8) ?? Data()
-                        pair.frontImage = frontPhoto.jpegData(compressionQuality: 0.8) ?? Data()
-                        try? moc.save()
-                    }
-                    // Optionally show a confirmation or reset, but do not navigate to .done again
-                }
-                .padding()
-                .disabled(backPhoto == nil || frontPhoto == nil)
-            }
-            .padding([.horizontal, .bottom])
-        }
-        .onAppear {
-            if currentPrompt == nil {
-                currentPrompt = DualCameraView.prompts.randomElement()
             }
         }
     }

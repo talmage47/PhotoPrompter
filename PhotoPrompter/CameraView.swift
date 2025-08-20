@@ -11,22 +11,29 @@ class CameraViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupCamera()
+        previewContainer = UIView()
+        previewContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(previewContainer)
+        
         addCaptureButton()
+        
+        NSLayoutConstraint.activate([
+            previewContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            previewContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            previewContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            previewContainer.bottomAnchor.constraint(equalTo: captureButton.topAnchor, constant: -28),
+            
+            captureButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            captureButton.widthAnchor.constraint(equalToConstant: 64),
+            captureButton.heightAnchor.constraint(equalToConstant: 64),
+            captureButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+        ])
+        
+        setupCamera()
     }
     
     private func setupCamera() {
         captureSession.sessionPreset = .photo
-        
-        previewContainer = UIView(frame: view.bounds)
-        previewContainer.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(previewContainer)
-        NSLayoutConstraint.activate([
-            previewContainer.topAnchor.constraint(equalTo: view.topAnchor),
-            previewContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            previewContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            previewContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
         
         guard let backCamera = AVCaptureDevice.default(for: .video) else {
             print("Unable to access back camera!")
@@ -58,7 +65,6 @@ class CameraViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        previewContainer.frame = view.bounds
         previewLayer.frame = previewContainer.bounds
     }
     
@@ -71,13 +77,6 @@ class CameraViewController: UIViewController {
         
         captureButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(captureButton)
-        
-        NSLayoutConstraint.activate([
-            captureButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            captureButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            captureButton.widthAnchor.constraint(equalToConstant: 64),
-            captureButton.heightAnchor.constraint(equalToConstant: 64),
-        ])
         
         captureButton.addTarget(self, action: #selector(didTapCaptureButton), for: .touchUpInside)
         captureButton.addTarget(self, action: #selector(captureButtonTouchDown), for: .touchDown)
@@ -184,6 +183,15 @@ extension CameraViewController {
         guard let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else { return }
         onImageCaptured?(image)
+    }
+}
+
+#Preview {
+    if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+        // Show a placeholder
+        Color.gray.overlay(Text("Camera Preview Not Available"))
+    } else {
+        CameraView(position: .back, onImageCaptured: { _ in })
     }
 }
 
