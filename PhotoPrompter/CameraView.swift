@@ -1,7 +1,21 @@
 import UIKit
 import AVFoundation
 
-class CameraViewController: UIViewController {
+struct CameraView: UIViewControllerRepresentable {
+    let position: CameraPosition
+    let onImageCaptured: (UIImage) -> Void
+
+    func makeUIViewController(context: Context) -> CameraViewController {
+        let controller = CameraViewController()
+        controller.position = position
+        controller.onImageCaptured = onImageCaptured
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {}
+}
+
+class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     private let captureSession = AVCaptureSession()
     private var previewLayer: AVCaptureVideoPreviewLayer!
     private var photoOutput = AVCapturePhotoOutput()
@@ -99,10 +113,17 @@ class CameraViewController: UIViewController {
         let settings = AVCapturePhotoSettings()
         photoOutput.capturePhoto(with: settings, delegate: self)
     }
-}
-
-extension CameraViewController: AVCapturePhotoCaptureDelegate {
-    // Removed duplicate photoOutput(_:didFinishProcessingPhoto:error:) method here
+    
+    // Update delegate to call back
+    public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        if let error = error {
+            print("Error capturing photo: \(error)")
+            return
+        }
+        guard let imageData = photo.fileDataRepresentation(),
+              let image = UIImage(data: imageData) else { return }
+        onImageCaptured?(image)
+    }
 }
 
 
@@ -113,20 +134,6 @@ import UIKit
 enum CameraPosition {
     case front
     case back
-}
-
-struct CameraView: UIViewControllerRepresentable {
-    let position: CameraPosition
-    let onImageCaptured: (UIImage) -> Void
-
-    func makeUIViewController(context: Context) -> CameraViewController {
-        let controller = CameraViewController()
-        controller.position = position
-        controller.onImageCaptured = onImageCaptured
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {}
 }
 
 // Extend CameraViewController to support front/back and callback
@@ -172,17 +179,6 @@ extension CameraViewController {
                 print("Error setting camera device: \(error)")
             }
         }
-    }
-    
-    // Update delegate to call back
-    public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        if let error = error {
-            print("Error capturing photo: \(error)")
-            return
-        }
-        guard let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else { return }
-        onImageCaptured?(image)
     }
 }
 
